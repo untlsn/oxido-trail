@@ -1,4 +1,5 @@
 import * as fs from 'node:fs/promises';
+import OpenAI from 'openai';
 
 async function readPlainArticle() {
 	let content: string | undefined = undefined;
@@ -12,4 +13,23 @@ async function readPlainArticle() {
 	return content;
 }
 
-console.log(await readPlainArticle())
+/**
+ * Create simple instance of openai with limitation to one message as user and return first content
+ */
+function createSimpleChat() {
+	const apiKey = process.env.OPEN_AI_KEY;
+	const model = process.env.OPEN_AI_MODEL;
+	if (!apiKey || !model) throw Error('OPEN_AI_KEY and OPEN_AI_MODEL must be present in env variables');
+	const openai = new OpenAI({ apiKey });
+
+	return async (content: string) => {
+		const { choices } = await openai.chat.completions.create({
+			model,
+			messages: [
+				{ role: "user", content },
+			],
+		})
+
+		return choices[0].message.content
+	}
+}
