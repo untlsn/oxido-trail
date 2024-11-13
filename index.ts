@@ -40,22 +40,24 @@ function createSimpleChat() {
  * Guard in case AI return more than just content of body
  */
 function trimHtml(html: string) {
-	return html
-		.replace(/^.*<body>\n?/, '')
-		.replace(/\n?<\/body>.*$/, '')
+	return html.replace(/(^.*<body>\n?)|(\n?<\/body>.*$)/, '')
 }
 
 async function main() {
 	const chat = createSimpleChat();
 
-
 	const prompt = 'Give html with good SEO and semantic. Add images in figure with comprehensive description in figcaption, src="image_placeholder.jpg" and alt that can be used to generate graphics by AI. Everything in polish. Return only body:';
 
 	const articleText = await readPlainArticle();
 
-	const content = trimHtml(await chat(`${prompt}\n\n${articleText}`));
+	const content = trimHtml(await fs.readFile('./artykul.html', 'utf-8'));
 
 	await fs.writeFile('./artykul.html', content, 'utf-8')
+
+	if (!process.argv.includes('--with-template')) return;
+
+	const template = await fs.readFile('./szablon.html', 'utf-8')
+	await fs.writeFile('./podglad.html', template.replace('<!--APP-->', content), 'utf-8')
 }
 
 main();
