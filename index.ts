@@ -30,6 +30,32 @@ function createSimpleChat() {
 			],
 		})
 
-		return choices[0].message.content
+		const aiResponse = choices[0].message.content
+		if (!aiResponse) throw new Error('OpenAI don\'t return any response')
+		return aiResponse;
 	}
 }
+
+/**
+ * Guard in case AI return more than just content of body
+ */
+function trimHtml(html: string) {
+	return html
+		.replace(/^.*<body>\n?/, '')
+		.replace(/\n?<\/body>.*$/, '')
+}
+
+async function main() {
+	const chat = createSimpleChat();
+
+
+	const prompt = 'Give html with good SEO and semantic. Add images in figure with comprehensive description in figcaption, src="image_placeholder.jpg" and alt that can be used to generate graphics by AI. Everything in polish. Return only body:';
+
+	const articleText = await readPlainArticle();
+
+	const content = trimHtml(await chat(`${prompt}\n\n${articleText}`));
+
+	await fs.writeFile('./artykul.html', content, 'utf-8')
+}
+
+main();
