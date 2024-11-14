@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import OpenAI from 'openai';
+import 'dotenv/config'
 
 async function readPlainArticle() {
 	let content: string | undefined = undefined;
@@ -18,13 +19,12 @@ async function readPlainArticle() {
  */
 function createSimpleChat() {
 	const apiKey = process.env.OPEN_AI_KEY;
-	const model = process.env.OPEN_AI_MODEL;
-	if (!apiKey || !model) throw Error('OPEN_AI_KEY and OPEN_AI_MODEL must be present in env variables');
+	if (!apiKey) throw Error('OPEN_AI_KEY must be present in env variables');
 	const openai = new OpenAI({ apiKey });
 
 	return async (content: string) => {
 		const { choices } = await openai.chat.completions.create({
-			model,
+			model: process.env.OPEN_AI_MODEL || 'gpt-4o-mini',
 			messages: [
 				{ role: "user", content },
 			],
@@ -44,20 +44,23 @@ function trimHtml(html: string) {
 }
 
 async function main() {
+	console.log('Generowanie, prosze czekać...');
 	const chat = createSimpleChat();
 
 	const prompt = 'Give html with good SEO and semantic. Add images in figure with comprehensive description in figcaption, src="image_placeholder.jpg" and alt that can be used to generate graphics by AI. Everything in polish. Return only body:';
 
 	const articleText = await readPlainArticle();
 
-	const content = trimHtml(await fs.readFile('./artykul.html', 'utf-8'));
+	const content = trimHtml(await chat(`${prompt}\n\n${articleText}`));
 
 	await fs.writeFile('./artykul.html', content, 'utf-8')
+	console.log('\n\nPlik został wygenerowany do ./artykul.html');
 
 	if (!process.argv.includes('--with-template')) return;
 
 	const template = await fs.readFile('./szablon.html', 'utf-8')
 	await fs.writeFile('./podglad.html', template.replace('<!--APP-->', content), 'utf-8')
+	console.log('Podgląd pliku został wygenerowany do ./podglad.html');
 }
 
-main();
+await main();
